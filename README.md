@@ -23,35 +23,42 @@ These parameters are selected within specific intervals, ensuring compatibility 
 
 ## Parameter Search Intervals
 
-### **Pixel Size (\( \text{pixelsize} \))**
-- Defined by the interferometric resolution:
+# PYRA: Python for MiRA
 
-λ_min / 6B_max ≤ pixelsize ≤ λ_min / 2B_max
+**Parameter Search Intervals**
 
-- The range probes smaller pixel sizes (\( λ / 6B \)) to account for sub-resolution image details.
+1. **Pixel Size (\(\text{pixelsize}\))**
+   Defined by the interferometric resolution:
+   $$
+   \frac{λ_{\text{min}}}{6B_{\text{max}}} \leq \text{pixelsize} \leq \frac{λ_{\text{min}}}{2B_{\text{max}}}
+   $$
 
-### **Field of View (FoV)**
-- Based on the interferometric FoV:
+3. **Field of View (FoV)**
+   Defined based on the interferometric field of view:
+   $$
+   \text{FoV} = \frac{λ_{\text{max}}}{B_{\text{min}}}, \quad \text{search range: } [0.7 \times \text{FoV}, 1.0 \times \text{FoV}]
+   $$
 
-λ_max / B_min × [0.7, 1.0]
+4. **Tau (\(\tau\))**
+   Edge-preserving threshold for hyperbolic regularization:
+   $$
+   \left(\frac{\text{pixelsize}}{\text{FoV}}\right)^2 \leq \tau \leq \left(\frac{\text{pixelsize}}{\text{FoV}}\right)^2 \times 10^4
+   $$
 
+       if we assume an uniform image, the mean pixel value should be equal to flux*(pixelsize/FoV)^2, assuming a nromalized flux, we have then (pixelsize/FoV)^2. So this value is used as the lower boundary of the interval. The higher boundary has been arbitrarly defined as (pixelsize/FoV)^2 * 10^4. 
 
-### **Tau (\( \tau \))**
-- Edge-preserving threshold for the *Hyperbolic* regularization:
+6. **Gamma (\(\gamma\))**
+   FWHM of prior light distribution for compactness regularization:
+   $$
+   [0.3 \times \text{FoV}, 0.8 \times \text{FoV}]
+   $$
 
-(pixelsize / FoV)^2 to (pixelsize / FoV)^2 × 10^4
+7. **Hyperparameter (\(\mu\))**
+   Weight for the regularization function in the total chi-square minimization:
+   $$
+   \chi^2_{\text{TOT}} = \chi^2_{\text{DATA}} + \mu \times f_{\text{regularization}}
+   $$
 
-
-### **Gamma (\( \gamma \))**
-- FWHM of the prior light distribution for *Compactness* regularization:
-
-[0.3 × FoV, 0.8 × FoV]
-
-
-### **Hyperparameter (\( \mu \))**
-- Weight for the regularization function in the total chi-square minimization:
-
-χ²_TOT = χ²_DATA + μ × f_regularization
 
 - Broad range for exploration: \( 10^3 \) to \( 10^9 \).
 
