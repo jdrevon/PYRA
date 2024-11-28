@@ -82,15 +82,16 @@ The primary script contains variables you need to configure before running. Belo
 2. Run the script:
  ```bash
  python3 OBJECT_INSTRU_MiRA_v3.py
-
-Outputs
+```
+## Outputs
 Results are stored in subfolders within path_results_tmp, organized by:
 
-Regularization methods
-Parameter values
+- Regularization methods
+- Parameter values
+
 Visualizations in the ALL_IMAGES folder include:
 
-Reconstructed images
-Beam-convolved images
-Comparisons of reconstructed vs. observed visibilities
-Residuals of squared visibilities
+- Reconstructed images
+- Beam-convolved images
+- Comparisons of reconstructed vs. observed visibilities
+- Residuals of squared visibilities
