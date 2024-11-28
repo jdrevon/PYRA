@@ -29,38 +29,35 @@ These parameters are selected within specific intervals, ensuring compatibility 
 
 1. **Pixel Size (\(\text{pixelsize}\))**
    Defined by the interferometric resolution:
-   $$
-   \frac{λ_{\text{min}}}{6B_{\text{max}}} \leq \text{pixelsize} \leq \frac{λ_{\text{min}}}{2B_{\text{max}}}
-   $$
+   `[λ_min / 6B_max, λ_min / 2B_max]`
 
-3. **Field of View (FoV)**
+The pixelsize search interval is defined based on the interferometric resolution of the user observations. Assuming the hyper-resolution to be lambda_min/4B_max, and knowing that to avoid aliasing issue, MiRA does not accept pixelsize larger than lambda_min/2B_max, the parameter is randomly chosen in between [lambda/6B, lambda/2B]. By experience, it is useful also to probe smaller pixelsize than the interferometric pixel-size at lambda/4B that is why lambda/6B is used,
+
+
+2. **Field of View (FoV)**
    Defined based on the interferometric field of view:
-   $$
-   \text{FoV} = \frac{λ_{\text{max}}}{B_{\text{min}}}, \quad \text{search range: } [0.7 \times \text{FoV}, 1.0 \times \text{FoV}]
-   $$
+   `[0.7 × FoV, 1 × FoV]`
 
-4. **Tau (\(\tau\))**
+The FoV search interval is defined based on the interferometric field of view of the user observations defined as FoV=lambda_max/B_min. The parameter is then randomly chosen in between [0.7*FoV,1*FoV],
+
+3. **Tau (\(\tau\))**
    Edge-preserving threshold for hyperbolic regularization:
-   $$
-   \left(\frac{\text{pixelsize}}{\text{FoV}}\right)^2 \leq \tau \leq \left(\frac{\text{pixelsize}}{\text{FoV}}\right)^2 \times 10^4
-   $$
+   `[(pixelsize/FoV)^2, (pixelsize/FoV)^2 × 10^4]`
 
-       if we assume an uniform image, the mean pixel value should be equal to flux*(pixelsize/FoV)^2, assuming a nromalized flux, we have then (pixelsize/FoV)^2. So this value is used as the lower boundary of the interval. The higher boundary has been arbitrarly defined as (pixelsize/FoV)^2 * 10^4. 
+The tau (edge preserving threshold), if we assume an uniform image, the mean pixel value should be equal to flux*(pixelsize/FoV)^2, assuming a nromalized flux, we have then (pixelsize/FoV)^2. So this value is used as the lower boundary of the interval. The higher boundary has been arbitrarly defined as (pixelsize/FoV)^2 * 10^4. So the tau value is randomly searched in between [(pixelsize/FoV)^2, (pixelsize/FoV)^2*10^4],
 
-6. **Gamma (\(\gamma\))**
+4. **Gamma (\(\gamma\))**
    FWHM of prior light distribution for compactness regularization:
-   $$
-   [0.3 \times \text{FoV}, 0.8 \times \text{FoV}]
-   $$
+   `[0.3 × FoV, 0.8 × FoV]`
+   
+The gamma (full width at half maximum (FWHM) of the prior distribution of light), the boundary as been arbitraly defined as: [0.3*FoV,0.8*FoV].
 
-7. **Hyperparameter (\(\mu\))**
+5. **Hyperparameter (\(\mu\))**
    Weight for the regularization function in the total chi-square minimization:
-   $$
-   \chi^2_{\text{TOT}} = \chi^2_{\text{DATA}} + \mu \times f_{\text{regularization}}
-   $$
+   Typically `[10^3, 10^9]`
 
-
-- Broad range for exploration: \( 10^3 \) to \( 10^9 \).
+The hyperparameter (mu) is the weight given to the regularization function in the given formula for the chi2 minimization: chi2_TOT = chi2_DATA + mu*f_regularization. The mu interval is defined by the user but the ideal value is usually between 10^2 and 10^6. We usually first want to scan in between [10^3,10^9] to have a broad overview of the impact of our hyperparameter on the output of the image reconstruction. For a given s
+For a given set of parameter (pixelsize,FoV,gamma) or (pixelsize,FoV,tau), the code will scan randomly the hyperparameter space as many times as the user wants using the variable hyperparameter_numb described below.  
 
 ---
 
