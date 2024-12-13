@@ -29,11 +29,30 @@ from astropy import units as units
 import math
 from scipy.ndimage import shift
 
-def reading_info_OIFITS(path_data, path_image):
+def orientation_image(file_path):
+
+    # Ouvrir le fichier FITS
+    with fits.open(file_path) as hdul:
+        image = hdul[0].data  # Charger les données de l'image
+        header = hdul[0].header
+        
+        # Lire les valeurs de CDELT1 et CDELT2
+        cdelt1 = header.get('CDELT1', 1.0)  # Valeur par défaut 1.0 si absente
+        cdelt2 = header.get('CDELT2', 1.0)
+        
+        # Appliquer les flips sans modifier le header
+        if cdelt1 < 0:  # Flip horizontal si CDELT1 est négatif
+            image = np.flip(image, axis=1)
+        if cdelt2 < 0:  # Flip vertical si CDELT2 est négatif
+            image = np.flip(image, axis=0)
+    
+    return image
+
+
+def reading_info_OIFITS(DATA_OBS, path_image):
 
     # Read data
     
-    DATA_OBS         = OIFITS_READING_concatenate(path_data)
     wavel            = DATA_OBS['VIS2']['WAVEL'][np.invert(DATA_OBS['VIS2']['FLAG'])]
     U                = DATA_OBS['VIS2']['U'][np.invert(DATA_OBS['VIS2']['FLAG'])]
     V                = DATA_OBS['VIS2']['V'][np.invert(DATA_OBS['VIS2']['FLAG'])]
@@ -56,7 +75,7 @@ def reading_info_OIFITS(path_data, path_image):
     q_v1, q_v2, q_v3 = V1/WL, V2/WL, V3/WL
 
     image, header = read_fits_image(path_image) #Read the image
-
+    image = orientation_image(path_image)
     return q_u, q_v, q_u1, q_u2, q_u3, q_v1, q_v2, q_v3, V2_MATISSE, V2_MATISSE_ERR, T3, image, header, T3_ERR
 
 def mas_to_rad(values):
@@ -206,13 +225,33 @@ def extract_header_info(header):
     return x_center, y_center, x_scale, y_scale
 
 
-def IMAGE_to_V2(path_data, path_image, padding):
+def IMAGE_to_V2(DATA_OBS, path_image, padding):
     """Convert an image to visibility squared (V2) data and extract the CP values"""
 
     # #Center the original image on the brightest pixel
     # image_centered = center_image_on_brightest_pixel(image)
     
-    q_u_interp, q_v_interp, q_u1, q_u2, q_u3, q_v1, q_v2, q_v3, V2_MATISSE, V2_MATISSE_ERR, CP_MATISSE, image, header, CP_MATISSE_ERR = reading_info_OIFITS(path_data, path_image)
+    q_u_interp, q_v_interp, q_u1, q_u2, q_u3, q_v1, q_v2, q_v3, V2_MATISSE, V2_MATISSE_ERR, CP_MATISSE, image, header, CP_MATISSE_ERR = reading_info_OIFITS(DATA_OBS, path_image)
+    
+    def image_is_even(image):
+        rows, cols = image.shape
+        return rows % 2 == 0 and cols % 2 == 0
+    
+    def pad_image_to_even(image):
+        rows, cols = image.shape
+        pad_y = 0 if rows % 2 == 0 else 1
+        pad_x = 0 if cols % 2 == 0 else 1
+        
+        padded_image = np.pad(image, ((0, pad_y), (0, pad_x)), mode='constant', constant_values=0)
+        
+        return padded_image
+
+    if image_is_even(image):  # Exemple de vérification
+        print("Image paire")
+    else:
+        print("Image impaire")
+        image = pad_image_to_even(image)
+
     x_center, y_center, x_scale, y_scale = extract_header_info(header) #read header info
     x_image, y_image = create_coordinate_arrays(image.shape, x_center, y_center, x_scale, y_scale) #create the x and y-axis list
 
