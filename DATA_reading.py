@@ -8,6 +8,27 @@ Created on Thu Apr 11 21:45:17 2024
 import numpy as np
 from astropy.io import fits 
 
+
+def trouver_position_sous_array(liste_arrays, sous_array):
+    for i, array in enumerate(liste_arrays):
+        # Convertir les arrays en listes pour pouvoir utiliser la méthode sorted
+        array_liste = list(array)
+        sous_array_liste = list(sous_array)
+
+        # Vérifier si les listes triées sont équivalentes
+        if sorted(array_liste) == sorted(sous_array_liste):
+            # Retourner la position du sous-array trouvé
+            return i
+
+    # Retourner -1 si le sous-array n'est pas trouvé
+    return -1
+
+def remove_spaces_in_string_array(string_array):
+    # Use list comprehension to remove spaces from each string in the array
+    result_array = np.array([string.replace(' ', '') for string in string_array])
+    
+    return result_array
+
 def OIFITS_READING_concatenate(filename):
     
     OIFITS_TOT = np.zeros(1, dtype=object)
@@ -19,16 +40,15 @@ def OIFITS_READING_concatenate(filename):
         index_vis   = np.where(name_HDU=='OI_VIS2')[0]
         index_t3    = np.where(name_HDU=='OI_T3')[0]
         index_wvl   = np.where(name_HDU=='OI_WAVELENGTH')[0]
+        index_flux = np.where(name_HDU=='OI_FLUX')[0]
+        index_array = np.where(name_HDU=='OI_ARRAY')[0]
 
-        lambda_fichier   =  fichier[index_wvl[0]].data['EFF_WAVE']
-        lambda_bandwidth =  fichier[index_wvl[0]].data['EFF_BAND']
-        dic                            = {'WAVEL': lambda_fichier}
+        insame_wvl  = np.array([fichier[t].header['INSNAME'] for t in index_wvl])
+        
+        dic = {}
         dic['NAME']                    = filename         
-        dic['BANDWIDTH']               = lambda_bandwidth        
 
                
-        wavel_shape = np.array([len(fichier[t].data['EFF_WAVE']) for t in index_wvl])
-
         vis2     = []
         vis2_err = []
         u_coord = []
@@ -46,45 +66,39 @@ def OIFITS_READING_concatenate(filename):
         v2_coord = []
         u3_coord = []
         v3_coord = []
+        flag = []
         
+        flux = np.empty((0, 0))  # Tableau vide 2D
+        flux_err = np.empty((0, 0))
+        flux_flag = np.empty((0, 0))
+        flux_TEL = np.empty((0, 0))
+        wavel_flux = np.empty((0, 0))
         
+        STA_INDEX_tmp = []
+        TEL_NAME_tmp  = []        
+        
+        for s in range(len(index_array)):
+
+            STA_INDEX_tmp = np.append(STA_INDEX_tmp,np.array(fichier[index_array[s]].data['STA_INDEX']))               
+            TEL_NAME_tmp = np.append(TEL_NAME_tmp,[np.array(fichier[index_array[s]].data['TEL_NAME'])])                
+
+        STA_INDEX_tmp = np.reshape(STA_INDEX_tmp, (-1,4))
+        TEL_NAME_tmp = np.reshape(TEL_NAME_tmp, (-1,4))
+
         
         for i in range(len(index_vis)):
             
-            if type(fichier[index_vis[i]].data['VIS2DATA'][0]) == np.float64:
-                len_wavel_vis = 1
-            else:
-                len_wavel_vis = len(fichier[index_vis[i]].data['VIS2DATA'][0])
+            wavel_index =  np.where(insame_wvl == fichier[index_vis[i]].header['INSNAME'])[0][0] 
+            len_wavel_vis = fichier[index_wvl[wavel_index]].header['NAXIS2']
             
-            if len_wavel_vis == max(wavel_shape):
-                vis2= np.append(vis2,np.array(fichier[index_vis[i]].data['VIS2DATA']))
-                vis2_err = np.append(vis2_err,np.array(fichier[index_vis[i]].data['VIS2ERR']))
-                vis2_flag = np.append(vis2_flag,np.array(fichier[index_vis[i]].data['FLAG']))
-                u_coord = np.append(u_coord,np.array([fichier[index_vis[i]].data['UCOORD']]*len_wavel_vis).T)
-                v_coord = np.append(v_coord,np.array([fichier[index_vis[i]].data['VCOORD']]*len_wavel_vis).T)
+            vis2 = np.append(vis2,np.array(fichier[index_vis[i]].data['VIS2DATA']))
+            vis2_err = np.append(vis2_err,np.array(fichier[index_vis[i]].data['VIS2ERR']))
+            vis2_flag = np.append(vis2_flag,np.array(fichier[index_vis[i]].data['FLAG']))
+            u_coord = np.append(u_coord,np.array([fichier[index_vis[i]].data['UCOORD']]*len_wavel_vis).T)
+            v_coord = np.append(v_coord,np.array([fichier[index_vis[i]].data['VCOORD']]*len_wavel_vis).T)
+            
+            wavel = np.append(wavel,[fichier[index_wvl[wavel_index]].data['EFF_WAVE']]*len(fichier[index_vis[i]].data['VIS2ERR']))
                 
-                index=index_wvl[wavel_shape==len_wavel_vis][0] 
-                
-                wavel = np.append(wavel,[fichier[index].data['EFF_WAVE']]*len(fichier[index_vis[i]].data['VIS2ERR']))
-            
-            else:
-                diff = max(wavel_shape)-len_wavel_vis
-        
-                shape = np.shape(np.array(fichier[index_vis[i]].data['VIS2DATA']))[0]
-                add = np.empty((shape,diff))*np.nan
-        
-                vis2 = np.append(vis2,np.hstack((np.array(fichier[index_vis[i]].data['VIS2DATA']),add)), axis=0)
-                vis2_err = np.append(vis2_err,np.hstack((np.array(fichier[index_vis[i]].data['VIS2ERR']),add)), axis=0)
-                vis2_flag = np.append(vis2_flag,np.hstack((np.array(fichier[index_vis[i]].data['FLAG']),add)), axis=0)
-                u_coord = np.append(u_coord,np.hstack((np.array([fichier[index_vis[i]].data['UCOORD']]*len_wavel_vis).T,add)), axis=0)
-                v_coord = np.append(v_coord,np.hstack((np.array([fichier[index_vis[i]].data['VCOORD']]*len_wavel_vis).T,add)), axis=0)
-
-                index=index_wvl[wavel_shape==len_wavel_vis][0] 
-                
-                wavel = np.append(wavel,np.hstack((np.array([fichier[index].data['EFF_WAVE']]*len(fichier[index_vis[i]].data['VIS2ERR'])),add)), axis=0)
-            
-            
-            
             vis2     = np.array(vis2, dtype='object').astype(float)
             vis2_err = np.array(vis2_err, dtype='object').astype(float)
             vis2_flag = np.array(vis2_flag, dtype='bool') # ==> MAGIC TRICK! Like this all the NaN value that has been added to fit the wavelengths will automatically be flagged! But we will conserve the exact shape for all data, MOUHAHAHA (yes it's 2am and I'm proud of it)
@@ -109,44 +123,20 @@ def OIFITS_READING_concatenate(filename):
 
         for i in range(len(index_t3)):
 
-            if type(fichier[index_t3[i]].data['T3PHI'][0]) == np.float64:
-                len_wavel_t3 = 1
-            else:
-                len_wavel_t3 = len(fichier[index_t3[i]].data['T3PHI'][0])
+            wavel_index =  np.where(insame_wvl == fichier[index_t3[i]].header['INSNAME'])[0][0] 
+            len_wavel_t3 = fichier[index_wvl[wavel_index]].header['NAXIS2']
             
-            if len_wavel_t3 == max(wavel_shape):
-                t3       = np.append(t3,np.array(fichier[index_t3[i]].data['T3PHI']))
-                t3_err   = np.append(t3_err,np.array(fichier[index_t3[i]].data['T3PHIERR']))
-                t3_flag  = np.append(t3_flag,np.array(fichier[index_t3[i]].data['FLAG']))
-                u1_coord = np.append(u1_coord,np.array([fichier[index_t3[i]].data['U1COORD']]*len_wavel_t3).T)
-                v1_coord = np.append(v1_coord,np.array([fichier[index_t3[i]].data['V1COORD']]*len_wavel_t3).T)
-                u2_coord = np.append(u2_coord,np.array([fichier[index_t3[i]].data['U2COORD']]*len_wavel_t3).T)
-                v2_coord = np.append(v2_coord,np.array([fichier[index_t3[i]].data['V2COORD']]*len_wavel_t3).T)
-                u3_coord = np.append(u3_coord,np.array([fichier[index_t3[i]].data['U1COORD']+fichier[index_t3[i]].data['U2COORD']]*len_wavel_t3).T)
-                v3_coord = np.append(v3_coord,np.array([fichier[index_t3[i]].data['V1COORD']+fichier[index_t3[i]].data['V2COORD']]*len_wavel_t3).T)
-                
-                index = index_wvl[wavel_shape==len_wavel_t3][0] 
-                                
-                wavel = np.append(wavel,[fichier[index].data['EFF_WAVE']]*len(fichier[index_t3[i]].data['T3PHI']))
-            else:
-                diff = max(wavel_shape)-len((np.array(fichier[index_t3[i]].data['T3PHI'])[0]))
-        
-                shape = np.shape(np.array(fichier[index_vis[i]].data['T3PHI']))[0]
-                add = np.empty((shape,diff))*np.nan
-        
-                t3 = np.append(t3,np.hstack((np.array(fichier[index_t3[i]].data['T3PHI']),add)), axis=0)
-                t3_err = np.append(t3_err,np.hstack((np.array(fichier[index_t3[i]].data['T3PHIERR']),add)), axis=0)
-                t3_flag = np.append(t3_flag,np.hstack((np.array(fichier[index_t3[i]].data['FLAG']),add)), axis=0)
-                u1_coord = np.append(u1_coord,np.hstack((np.array([fichier[index_t3[i]].data['U1COORD']]*len_wavel_t3).T,add)), axis=0)
-                v1_coord = np.append(v1_coord,np.hstack((np.array([fichier[index_t3[i]].data['V1COORD']]*len_wavel_t3).T,add)), axis=0)
-                u2_coord = np.append(u2_coord,np.hstack((np.array([fichier[index_t3[i]].data['U2COORD']]*len_wavel_t3).T,add)), axis=0)
-                v2_coord = np.append(v2_coord,np.hstack((np.array([fichier[index_t3[i]].data['V2COORD']]*len_wavel_t3).T,add)), axis=0)
-                u3_coord = np.append(u3_coord,np.hstack((np.array([fichier[index_t3[i]].data['U1COORD']+fichier[index_t3[i]].data['U2COORD']]*len_wavel_t3).T,add)), axis=0)
-                v3_coord = np.append(v3_coord,np.hstack((np.array([fichier[index_t3[i]].data['V1COORD']+fichier[index_t3[i]].data['V2COORD']]*len_wavel_t3).T,add)), axis=0)
-
-                index = index_wvl[wavel_shape==len_wavel_t3][0] 
-                
-                wavel = np.append(wavel,[fichier[index].data['EFF_WAVE']]*len(fichier[index_t3[i]].data['T3PHI']))
+            t3       = np.append(t3,np.array(fichier[index_t3[i]].data['T3PHI']))
+            t3_err   = np.append(t3_err,np.array(fichier[index_t3[i]].data['T3PHIERR']))
+            t3_flag  = np.append(t3_flag,np.array(fichier[index_t3[i]].data['FLAG']))
+            u1_coord = np.append(u1_coord,np.array([fichier[index_t3[i]].data['U1COORD']]*len_wavel_t3).T)
+            v1_coord = np.append(v1_coord,np.array([fichier[index_t3[i]].data['V1COORD']]*len_wavel_t3).T)
+            u2_coord = np.append(u2_coord,np.array([fichier[index_t3[i]].data['U2COORD']]*len_wavel_t3).T)
+            v2_coord = np.append(v2_coord,np.array([fichier[index_t3[i]].data['V2COORD']]*len_wavel_t3).T)
+            u3_coord = np.append(u3_coord,np.array([fichier[index_t3[i]].data['U1COORD']+fichier[index_t3[i]].data['U2COORD']]*len_wavel_t3).T)
+            v3_coord = np.append(v3_coord,np.array([fichier[index_t3[i]].data['V1COORD']+fichier[index_t3[i]].data['V2COORD']]*len_wavel_t3).T)
+            
+            wavel = np.append(wavel,[fichier[index_wvl[wavel_index]].data['EFF_WAVE']]*len(fichier[index_t3[i]].data['T3PHI']))
             
             
             
@@ -181,6 +171,77 @@ def OIFITS_READING_concatenate(filename):
         dic['T3']['FLAG']     = t3_flag
 
 
+
+        for i in range(len(index_flux)):
+            # Récupérer l'index et la longueur d'onde correspondante
+            wavel_index = np.where(insame_wvl == fichier[index_t3[i]].header['INSNAME'])[0][0]
+            len_wavel_flux = fichier[index_wvl[wavel_index]].header['NAXIS2']
+        
+            # Extraire les données à ajouter
+            new_flux = np.array(fichier[index_flux[i]].data['FLUXDATA'])
+            new_flux_err = np.array(fichier[index_flux[i]].data['FLUXERR'])
+            new_flux_flag = np.array(fichier[index_flux[i]].data['FLAG'])
+            new_wavel_flux = np.array([fichier[index_wvl[wavel_index]].data['EFF_WAVE']] * 4)
+        
+            # Si flux est vide, affecter directement
+            if flux.size == 0:
+                flux = new_flux
+                flux_err = new_flux_err
+                flux_flag = new_flux_flag
+                wavel_flux = new_wavel_flux
+            else:
+                # Vérifier les dimensions et ajuster si nécessaire pour flux, flux_err, flux_flag
+                if flux.shape[1] != new_flux.shape[1]:
+                    max_len = max(flux.shape[1], new_flux.shape[1])
+                    flux = np.pad(flux, ((0, 0), (0, max_len - flux.shape[1])), constant_values=np.nan)
+                    flux_err = np.pad(flux_err, ((0, 0), (0, max_len - flux_err.shape[1])), constant_values=np.nan)
+                    flux_flag = np.pad(flux_flag, ((0, 0), (0, max_len - flux_flag.shape[1])), constant_values=np.nan)
+                    new_flux = np.pad(new_flux, ((0, 0), (0, max_len - new_flux.shape[1])), constant_values=np.nan)
+                    new_flux_err = np.pad(new_flux_err, ((0, 0), (0, max_len - new_flux_err.shape[1])), constant_values=np.nan)
+                    new_flux_flag = np.pad(new_flux_flag, ((0, 0), (0, max_len - new_flux_flag.shape[1])), constant_values=np.nan)
+        
+                # Ajouter les nouvelles données
+                flux = np.append(flux, new_flux, axis=0)
+                flux_err = np.append(flux_err, new_flux_err, axis=0)
+                flux_flag = np.append(flux_flag, new_flux_flag, axis=0)
+        
+                # Ajuster wavel_flux si nécessaire
+                if wavel_flux.shape[1] != new_wavel_flux.shape[1]:
+                    max_len_wvl = max(wavel_flux.shape[1], new_wavel_flux.shape[1])
+                    wavel_flux = np.pad(wavel_flux, ((0, 0), (0, max_len_wvl - wavel_flux.shape[1])), constant_values=np.nan)
+                    new_wavel_flux = np.pad(new_wavel_flux, ((0, 0), (0, max_len_wvl - new_wavel_flux.shape[1])), constant_values=np.nan)
+        
+                # Concaténer wavel_flux
+                wavel_flux = np.append(wavel_flux, new_wavel_flux, axis=0)
+        
+            # Gestion des STA_INDEX et TEL_NAME
+            index_good_conf = trouver_position_sous_array(STA_INDEX_tmp, np.array(fichier[index_flux[i]].data['STA_INDEX']))
+            new_flux_TEL = np.array(
+                [np.array(remove_spaces_in_string_array(TEL_NAME_tmp[index_good_conf])[
+                    np.nonzero(np.array(fichier[index_flux[i]].data['STA_INDEX'])[:, None] == STA_INDEX_tmp[index_good_conf])[1]
+                ])] * len_wavel_flux
+            ).T
+        
+            # Ajuster flux_TEL si nécessaire
+            if flux_TEL.size == 0:
+                flux_TEL = new_flux_TEL
+            else:
+                if flux_TEL.shape[1] != new_flux_TEL.shape[1]:
+                    max_len_tel = max(flux_TEL.shape[1], new_flux_TEL.shape[1])
+                    flux_TEL = np.pad(flux_TEL, ((0, 0), (0, max_len_tel - flux_TEL.shape[1])), constant_values=np.nan)
+                    new_flux_TEL = np.pad(new_flux_TEL, ((0, 0), (0, max_len_tel - new_flux_TEL.shape[1])), constant_values=np.nan)
+        
+                # Concaténer flux_TEL
+                flux_TEL = np.append(flux_TEL, new_flux_TEL, axis=0)
+        
+        # Mise à jour du dictionnaire final
+        dic['FLUX'] = {}
+        dic['FLUX']['WAVEL'] = wavel_flux
+        dic['FLUX']['FLUX'] = flux
+        dic['FLUX']['FLUX_ERR'] = flux_err
+        dic['FLUX']['FLAG'] = flux_flag
+        dic['FLUX']['AT_NUMBER'] = flux_TEL
+
             
 
     OIFITS_TOT   = dic
@@ -192,7 +253,7 @@ def OIFITS_READING_concatenate(filename):
     
     return OIFITS_TOT
 
-# filename = 'C:/partage/LM_ALL_4.096_4.11.fits'
+# filename = 'C:/Users/jdrevon/Desktop/Margaux/ALL_LM_TOT.fits'
 
 # # filename = 'C:/Users/jdrevon/Desktop/SUPERVISION/2024/VLAD/data_issue/xtra_n_band2.fits'
 # OIFITS_TOT = OIFITS_READING_concatenate(filename)
