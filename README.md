@@ -56,8 +56,7 @@ The gamma (full width at half maximum (FWHM) of the prior distribution of light)
    Weight for the regularization function in the total chi-square minimization:
    Typically `[10^3, 10^9]`
 
-The hyperparameter (mu) is the weight given to the regularization function in the given formula for the chi2 minimization: chi2_TOT = chi2_DATA + mu*f_regularization. The mu interval is defined by the user but the ideal value is usually between 10^2 and 10^6. We usually first want to scan in between [10^3,10^9] to have a broad overview of the impact of our hyperparameter on the output of the image reconstruction. For a given s
-For a given set of parameter (pixelsize,FoV,gamma) or (pixelsize,FoV,tau), the code will scan randomly the hyperparameter space as many times as the user wants using the variable hyperparameter_numb described below.  
+The hyperparameter (mu) is the weight given to the regularization function in the given formula for the chi2 minimization: chi2_TOT = chi2_DATA + mu*f_regularization. The mu interval is defined by the user but the ideal value is usually between 10^2 and 10^6. We usually first want to scan in between [10^3,10^9] to have a broad overview of the impact of our hyperparameter on the output of the image reconstruction.
 
 ---
 
@@ -72,12 +71,11 @@ The primary script contains variables you need to configure before running. Belo
 | `path_results_tmp`       | Path to the directory for storing results.                                                                                                                                                                                                  |
 | `target_name`            | Subfolder name where outputs will be stored.                                                                                                                                                                                                |
 | `num_cores`              | Number of CPU cores dedicated to the routine.                                                                                                                                                                                               |
-| `hyperparameters_numb`   | Number of hyperparameter iterations for each parameter set. Ensure this value is greater than `num_cores`.                                                                                                                                  |
 | `h_min`, `h_max`         | Define the bounds of the hyperparameter space as powers of 10.                                                                                                                                                                              |
 | `iter_rec`               | Number of parameter sets to generate. For example, `hyperparameters_numb=10` and `iter_rec=100` will generate 1,000 models.                                                                                                                 |
 | `prior_image`            | Specify the prior image: `"Dirac"` or a `.fits` file containing the model image.                                                                                                                                                            |
-| `regularization`         | Choose one or more regularization methods: `['compactness']`, `['hyperbolic']`, or both.                                                                                                                                                    |
-| `maxeval`                | Maximum number of evaluations for MiRA to stop if convergence is not achieved (default: 20,000).                                                                                                                                           |
+| `regularization`         | Choose one regularization methods among: `'compactness'`, `'hyperbolic'`                                                                                                                                                    |
+| `maxeval`                | Maximum number of evaluations for MiRA to stop if convergence is not achieved (default: 50).                                                                                                                                           |
 
 ---
 
