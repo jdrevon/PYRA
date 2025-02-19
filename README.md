@@ -3,9 +3,10 @@
 **PYRA** is a Python wrapper designed to facilitate and optimize the use of **MiRA** (Multi-aperture Image Reconstruction Algorithm), developed by the [JMMC](https://github.com/emmt/MiRA?tab=readme-ov-file). This tool enables efficient and random scanning of the parameter space for image reconstruction. 
 
 **Requirements:**
+- MiRA
 - Python 3.8+
 - Linux/Ubuntu environment
-
+  
 ---
 
 ## Overview
