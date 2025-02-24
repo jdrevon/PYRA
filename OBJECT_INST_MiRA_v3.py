@@ -21,18 +21,18 @@ def rad_to_mas(rad):
     return y    
 
 
-path_data = "/path_data/data.fits"
-path_results_tmp = "/path/results/"
-target_name = 'beautiful_star'
+path_data = "/home2/jdrevon/DATA_rec/continuum_4.0325-4.0368_increased_err_10.fits"
+path_results_tmp = "/home2/jdrevon/MiRA_rec_new_v6_FoV/"
+target_name = 'piGru_40325'
 
-num_cores= 30 # number of core used
-h_min, h_max = 3, 9 #Power of ten of the hyperparameter range you want to probe
-iter_rec = 1000 #number of image reconstructions
+num_cores= 30
+h_min, h_max = 3, 9
+iter_rec = 1000
 
-prior_image = "/path/image.fits" #Dirac, random, path of the image
+prior_image = "/home2/jdrevon/DATA_rec/4.0325-4.0368_model_test_position.fits" #Dirac, random, path of the image
 regularization = 'compactness' # 'hyperbolic' or 'compactness' 
 
-maxeval = 50 #number of function to evaluate 50 is a good compromise before digging in artifacts
+maxeval = 50 #50
 
 DATA_OBS = OIFITS_READING_concatenate(path_data)
 
@@ -45,7 +45,7 @@ ftol = 0
 gtol = 0
 xtol = 0
 ftot = 1 #sum of total flux
-verb = 10 
+verb = 10
 
 path_save = path_results_tmp + '/' + target_name + '/' + regularization + '/'        
 if not os.path.exists(path_save):
@@ -74,7 +74,7 @@ def orientation_image(file_path):
 
 def random_tau(tau, n_points=100):
     # Générer une liste de valeurs balayées log10 entre tau et tau * 10^4
-    log10_sweep = np.logspace(np.log10(tau), np.log10(tau * 10**4), num=n_points)
+    log10_sweep = np.logspace(np.log10(tau* 10**-4), np.log10(tau * 10**4), num=n_points)
     
     # Choisir une valeur aléatoire parmi ces valeurs balayées
     tau_final = np.random.choice(log10_sweep)
@@ -135,9 +135,9 @@ def mscatter(x,y,ax=None, m=None, **kw):
 
 def run_calculation_compactness(reg, gam, pix, fov, h, path_param):
 
-    path_hyper = path_param + 'reg_%s_FoV_%.1f_pixsize_%.1f_param_%.1f_mu_%.1E.fits' % (reg, fov, pix, gam, h)
+    path_hyper = path_param + 'reg_%s_FoV_%.4f_pixsize_%.4f_param_%.4E_mu_%.4E.fits' % (reg, fov, pix, gam, h)
 
-    os.system("ymira -pixelsize=%.1fmas -fov=%.1fmas -regul=%s -mu=%.1E -gamma=%imas" % (
+    os.system("ymira -pixelsize=%.4fmas -fov=%.4fmas -regul=%s -mu=%.4E -gamma=%imas" % (
         pix, fov, reg, h, gam) + \
               " -ftol=%.1f -gtol=%.1f -xtol=%.1f -maxeval=%i -verb=%i -overwrite -save_visibilities -save_initial " % (
                   ftol, gtol, xtol, maxeval, verb) + \
@@ -148,9 +148,9 @@ def run_calculation_compactness(reg, gam, pix, fov, h, path_param):
 
 def run_calculation_hyperbolic(reg, tau, pix, fov, h, path_param):
 
-    path_hyper = path_param + 'reg_%s_FoV_%.1f_pixsize_%.1f_param_%.1E_mu_%.1E.fits' % (reg, fov, pix, tau, h)
+    path_hyper = path_param + 'reg_%s_FoV_%.4f_pixsize_%.4f_param_%.4E_mu_%.4E.fits' % (reg, fov, pix, tau, h)
 
-    os.system("ymira -pixelsize=%.1fmas -fov=%.1fmas -regul=%s -mu=%.1E -tau=%.1E" % (
+    os.system("ymira -pixelsize=%.4fmas -fov=%.4fmas -regul=%s -mu=%.4E -tau=%.4E" % (
         pix, fov, reg, h, tau) + \
               " -ftol=%.1f -gtol=%.1f -xtol=%.1f -maxeval=%i -verb=%i -overwrite -save_visibilities -save_initial" % (
                   ftol, gtol, xtol, maxeval, verb) + \
@@ -162,19 +162,19 @@ def run_calculation_hyperbolic(reg, tau, pix, fov, h, path_param):
 
 def run_MiRA(obs_res, obs_FoV, h_min, h_max, regularization, path_save, maxeval):    
 
-    pixelsize       = math.floor(round(random.uniform(obs_res/3, obs_res), 3)*10**1)/10**1
-    FoV             = round(random.uniform(0.9*obs_FoV, 1.1*obs_FoV), 3)
+    pixelsize       = math.floor(round(random.uniform(obs_res/2, obs_res), 4)*10**4)/10**4 # 2 - 1
+    FoV             = round(random.uniform(1.2*obs_FoV, 2*obs_FoV), 4) # 0.9 - 1.1 
     hyperparameter  = 10**random.uniform(h_min, h_max)            
     
     if regularization == 'compactness':            
-        param = round(random.uniform(0.3*obs_FoV, 0.8*obs_FoV), 3)
+        param = round(random.uniform(0.3*obs_FoV, 0.8*obs_FoV), 4) #0.3-0.8
     
     elif regularization == 'hyperbolic':
         tau_tmp = (pixelsize / FoV)**2 * 5E1              
         param = random_tau(tau_tmp) 
         if param == 0 : param=1
 
-    path_param = path_save + 'FoV_%.1f_pixsize_%.1f_param_%.1f_mu_%.1E/' % (FoV, pixelsize, param, hyperparameter)
+    path_param = path_save + 'FoV_%.4f_pixsize_%.4f_param_%.4E_mu_%.4E/' % (FoV, pixelsize, param, hyperparameter)
                    
     if not os.path.exists(path_param):
         os.makedirs(path_param)
@@ -310,8 +310,8 @@ def run_MiRA(obs_res, obs_FoV, h_min, h_max, regularization, path_save, maxeval)
     
     plt.subplots_adjust(left=0.4, right=0.99, top=0.92, bottom=0.4, wspace=0.1, hspace=0.2)
     plt.tight_layout(pad=1.0, rect=[0, 0, 1, 0.96])
-    output_dir = path_param + 'reg_%s_FoV_%.1f_pixsize_%.1f_param_%.1f_image.png'%(regularization,FoV, pixelsize, param)
-    fig1.suptitle("reg_%s_FoV_%.1f_pixsize_%.1f_param_%.1f_mu_%.2E"%(regularization,FoV, pixelsize, param, hyperparameter), fontsize=16)
+    output_dir = path_param + 'reg_%s_FoV_%.4f_pixsize_%.4f_param_%.4E_image.png'%(regularization,FoV, pixelsize, param)
+    fig1.suptitle("reg_%s_FoV_%.4f_pixsize_%.4f_param_%.4E_mu_%.4E"%(regularization,FoV, pixelsize, param, hyperparameter), fontsize=16)
     #fig1.savefig(output_dir)
 
     
