@@ -45,7 +45,7 @@ The FoV search interval is defined based on the interferometric field of view of
    Edge-preserving threshold for hyperbolic regularization:
    `[(pixelsize/FoV)^2 × 10^-4, (pixelsize/FoV)^2 × 10^4]`
 
-The tau (edge preserving threshold), if we assume an uniform image, the mean pixel value should be equal to flux*(pixelsize/FoV)^2, assuming a nromalized flux, we have then (pixelsize/FoV)^2. So this value is used as the lower boundary of the interval. The higher boundary has been arbitrarly defined as (pixelsize/FoV)^2 * 10^4. So the tau value is randomly searched in between [(pixelsize/FoV)^2, (pixelsize/FoV)^2*10^4],
+The tau (edge preserving threshold), if we assume an uniform image, the mean pixel value should be equal to flux*(pixelsize/FoV)^2, assuming a nromalized flux, we have then (pixelsize/FoV)^2. So this value is used as the lower boundary of the interval. The higher boundary has been arbitrarly defined as (pixelsize/FoV)^2 * 10^4. So the tau value is randomly searched in between [(pixelsize/FoV)^2*10^-4, (pixelsize/FoV)^2*10^4],
 
 4. **Gamma (\(\gamma\))**
    FWHM of prior light distribution for compactness regularization:
