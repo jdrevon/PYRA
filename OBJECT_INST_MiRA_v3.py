@@ -20,19 +20,37 @@ def rad_to_mas(rad):
     y = rad*1E3/(np.pi/(180*3600))
     return y    
 
+# Path Input
 
 path_data = "/home2/jdrevon/DATA_rec/continuum_4.0325-4.0368_increased_err_10.fits"
 path_results_tmp = "/home2/jdrevon/MiRA_rec_new_v6_FoV/"
 target_name = 'piGru_40325'
 
+# General Parameters
+
 num_cores= 30
-h_min, h_max = 3, 9
 iter_rec = 1000
 
-prior_image = "/home2/jdrevon/DATA_rec/4.0325-4.0368_model_test_position.fits" #Dirac, random, path of the image
-regularization = 'compactness' # 'hyperbolic' or 'compactness' 
+# Parameters Space
 
+pix_min_factor, pix_max_factor = 1/2,1     # minimum and maximum factor by which you multiply the minimum pixelsize defined as lambda_min/2B_max
+FoV_min_facotr, FoV_max_factor = 1.2, 1.5  # minimum and maximum factor by which you multiply the minimum FoV defined as lambda_max/B_min
+h_min, h_max = 3, 9 # min and max power of ten of the hyperpameter space probed for the hyperparameters sample
+compactness_min_factor, compactness_max_factor = 0.3, 0.8  #In case you use the compactness you preset the multiplied factor of the gaussian regularization FWHM defined regarding the FoV of the observations. 
+
+#MiRA Parameters:
+
+regularization = 'compactness' # 'hyperbolic' or 'compactness' 
+prior_image = "/home2/jdrevon/DATA_rec/4.0325-4.0368_model_test_position.fits" #Dirac, random, path of the image
 maxeval = 50 #50
+ftol = 0
+gtol = 0
+xtol = 0
+ftot = 1 #sum of total flux
+verb = 10
+
+
+#Functions
 
 DATA_OBS = OIFITS_READING_concatenate(path_data)
 
@@ -40,12 +58,6 @@ mira_max_pix_size = rad_to_mas(0.5/(max(max(abs(DATA_OBS['VIS2']['U'])/DATA_OBS[
 obs_res       =  rad_to_mas(0.5/(max(max(abs(DATA_OBS['VIS2']['U'])/DATA_OBS['VIS2']['WAVEL']),max(abs(DATA_OBS['VIS2']['V'])/DATA_OBS['VIS2']['WAVEL']))))
 obs_hyper_res =  rad_to_mas(0.25/(max(np.sqrt(DATA_OBS['VIS2']['U']**2+DATA_OBS['VIS2']['V']**2)/DATA_OBS['VIS2']['WAVEL'])))
 obs_FoV       =  rad_to_mas(1.0/(min(np.sqrt(DATA_OBS['VIS2']['U']**2+DATA_OBS['VIS2']['V']**2)/DATA_OBS['VIS2']['WAVEL'])))
-
-ftol = 0
-gtol = 0
-xtol = 0
-ftot = 1 #sum of total flux
-verb = 10
 
 path_save = path_results_tmp + '/' + target_name + '/' + regularization + '/'        
 if not os.path.exists(path_save):
@@ -162,12 +174,13 @@ def run_calculation_hyperbolic(reg, tau, pix, fov, h, path_param):
 
 def run_MiRA(obs_res, obs_FoV, h_min, h_max, regularization, path_save, maxeval):    
 
-    pixelsize       = math.floor(round(random.uniform(obs_res/2, obs_res), 4)*10**4)/10**4 # 2 - 1
-    FoV             = round(random.uniform(1.2*obs_FoV, 2*obs_FoV), 4) # 0.9 - 1.1 
+
+    pixelsize       = math.floor(round(random.uniform(obs_res*pix_min_factor, obs_res*pix_max_factor), 4)*10**4)/10**4 # 2 - 1
+    FoV             = round(random.uniform(FoV_min_facotr*obs_FoV, FoV_max_factor*obs_FoV), 4) # 0.9 - 1.1 
     hyperparameter  = 10**random.uniform(h_min, h_max)            
     
     if regularization == 'compactness':            
-        param = round(random.uniform(0.3*obs_FoV, 0.8*obs_FoV), 4) #0.3-0.8
+        param = round(random.uniform(compactness_min_factor*obs_FoV, compactness_max_factor*obs_FoV), 4) #0.3-0.8
     
     elif regularization == 'hyperbolic':
         tau_tmp = (pixelsize / FoV)**2 * 5E1              
